@@ -28,7 +28,7 @@ distancia2d (P2d (x1,x2))  (P2d (y1,y2)) = sqrt((y1 - x1)^2 + (y2 - x2)^2)
 distancia3d :: Punto3d -> Punto3d -> Double
 distancia3d (P3d(x1,x2,x3)) (P3d (y1,y2,y3)) = sqrt((y1 - x1)^2 + (y2 - x2)^2 + (y3 - x3)^2)
 
--- EJERCICIO 2
+---- EJERCICIO 2 ----
 
 compareidx :: Punto p => Int -> p -> p -> Ordering
 compareidx i p q = compare (coord i p) (coord i q)
@@ -63,7 +63,18 @@ No esta chequeado el uso de izq y der si divide bien
 creo que !! y sortBy solo toma listas
 -}
 
+---- EJERCICIO 3 ----
+insertar :: Punto p => p -> NdTree p -> NdTree p
+insertar p t = insertarRecu p t 0
+  where
+    insertarRecu punto Empty level = 
+        Node Empty punto Empty (level `mod` dimension punto)
 
---Falta la insertar, la copio mna
+    insertarRecu punto (Node izq raiz der eje) level
+      | coord eje punto < coord eje raiz = 
+          Node (insertarRecu punto izq (level + 1)) raiz der eje
+      | otherwise = 
+          Node izq raiz (insertarRecu punto der (level + 1)) eje
+
 
 
