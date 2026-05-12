@@ -103,9 +103,9 @@ insertar p t = insertarRecu p t 0 --insertarRecu nos ayuda a pasar el level actu
 
     insertarRecu punto (Node izq raiz der eje) level
       | coord eje punto < coord eje raiz = 
-          Node (insertarRecu punto izq (level + 1)) raiz der eje
+          insertarRecu punto izq (level + 1)
       | otherwise = 
-          Node izq raiz (insertarRecu punto der (level + 1)) eje
+          insertarRecu punto der (level + 1)
 
 
 {- No funciona porque en cada paso crea el nodo. lo que hay que hacer para mantener el balance es en cada paso
