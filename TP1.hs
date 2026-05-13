@@ -10,8 +10,10 @@ class Punto p where
     dist :: p -> p -> Double -- calcula la distancia entre dos puntos
 
 ---- EJERCICIO 1 ----
-
--- 1A, GENERICA, USANDO coord Y dimension
+--1A
+{-Toma dos puntos y calcula su distancia
+Notar que es generica, esto es, que Punto puede ser de cualquier tipo
+Trabaja con las funciones declaradas en su tipo-}
 distancia :: Punto p => p -> p -> Double
 distancia p q | dimension p /= dimension q = -1
          | otherwise = sqrt (sum [(coord i q- coord i p)^2 | i <- [0.. dimension p - 1]])
@@ -20,10 +22,12 @@ distancia p q | dimension p /= dimension q = -1
 --1B
 newtype Punto2d = P2d (Double, Double) deriving (Show,Eq)
 newtype Punto3d = P3d (Double, Double, Double) deriving (Show,Eq)
-    
+
+{-Calcula la distancia de dos puntos tipo P2d-}
 distancia2d :: Punto2d -> Punto2d -> Double
 distancia2d (P2d (x1,x2))  (P2d (y1,y2)) = sqrt((y1 - x1)^2 + (y2 - x2)^2)
 
+{-Calcula la distancia de dos puntos tipo P3d-}
 distancia3d :: Punto3d -> Punto3d -> Double
 distancia3d (P3d(x1,x2,x3)) (P3d (y1,y2,y3)) = sqrt((y1 - x1)^2 + (y2 - x2)^2 + (y3 - x3)^2)
 
@@ -51,11 +55,11 @@ instance Punto Punto3d where
 ---- EJERCICIO 2 ----
 
 
---Funcion generica, que toma un indice y dos puntos, y compara sus valores en ese indice
+{-Auxiliar. Toma un indice y dos puntos, y compara sus valores en ese indice-}
 compareidx :: Punto p => Int -> p -> p -> Ordering
 compareidx i p q = compare (coord i p) (coord i q)
 
-
+{-Toma una lista de puntos y los transforma en un arbol de puntos-}
 fromList :: Punto p => [p] -> NdTree p
 fromList [] = Empty
 fromList puntos = aux puntos 0 --Defino aux, que nos ayuda a pasar el level actual (arranca en 0)
@@ -81,7 +85,10 @@ fromList puntos = aux puntos 0 --Defino aux, que nos ayuda a pasar el level actu
 
 ---- EJERCICIO 3 ----
 
-
+{-Recibe un punto, un arbol, y inserta el punto en el arbol.
+Compara en cada nivel el eje actual de la raiz actual con el punto
+    Si es menor, insertar en el subarbol izquierdo
+    En caso contrario, inserta en el subarbol derecho-}
 insertar :: Punto p => p -> NdTree p -> NdTree p
 insertar p t = insertarRecu p t 0 --insertarRecu nos ayuda a pasar el level actual
   where insertarRecu punto Empty level = Node Empty punto Empty (level `mod` dimension punto)
@@ -93,15 +100,15 @@ insertar p t = insertarRecu p t 0 --insertarRecu nos ayuda a pasar el level actu
 ---- EJERCICIO 4 ----
 
 
-{-- Dados dos puntos p1 y p2, devuelve el minimo segun el eje indicado. --}
+{--Auxiliar. Dados dos puntos p1 y p2, devuelve el minimo segun el eje indicado. --}
 minP :: (Punto p) => Int -> p -> p -> p
 minP eje p1 p2 = if compareidx eje p1 p2 == LT then p1 else p2
 
-{-- Dados dos puntos p1 y p2, devuelve el maximo segun el eje indicado. --}
+{--Auxiliar. Dados dos puntos p1 y p2, devuelve el maximo segun el eje indicado. --}
 maxP :: (Punto p) => Int -> p -> p -> p
 maxP eje p1 p2 = if compareidx eje p1 p2 == GT then p1 else p2
 
-{-- Recibe un arbol NdTree, un punto p como ultimo valor minimo encontrado, y un eje,
+{--Auxiliar. Recibe un arbol NdTree, un punto p como ultimo valor minimo encontrado, y un eje,
 la funcion retornara el minimo punto encontrado en el arbol visto unicamente en la coordenada eje. --}
 minimumNdTree :: Punto p => NdTree p -> p -> Int -> p
 minimumNdTree Empty minActual _ = minActual
@@ -112,7 +119,7 @@ minimumNdTree (Node izq valor der eje) minActual ejeAlineado
         in minimumNdTree der minFinal ejeAlineado
 
 
-{-- Recibe un arbol NdTree, un punto p como ultimo valor maximo encontrado, y un eje,
+{--Auxiliar. Recibe un arbol NdTree, un punto p como ultimo valor maximo encontrado, y un eje,
 la funcion retornara el maximo punto encontrado en el arbol visto unicamente en la coordenada eje. --}
 maximumNdTree :: Punto p => NdTree p -> p -> Int -> p
 maximumNdTree Empty maxActual _ = maxActual
@@ -122,24 +129,31 @@ maximumNdTree (Node izq valor der eje) maxActual ejeAlineado
         let maxFinal = maximumNdTree der (maxP ejeAlineado valor maxActual) ejeAlineado
         in maximumNdTree izq maxFinal ejeAlineado
 
+{-Dado un punto y un arbol de puntos, elimina el punto del arbol
+Notar que una vez eliminado, si es una hoja, no hace nada mas al respecto,
+pero en caso de tener un subarbol derecho, busca un punto para copiar en su posicion,
+para luego eliminar el punto original del subarbol derecho.
+En caso de no tener subarbol derecho, busca el max del subarbol izq-}
 
 eliminar :: (Eq p, Punto p) => p -> NdTree p -> NdTree p
 eliminar _ Empty = Empty --arbol vacio
 eliminar punto hoja@(Node Empty valor Empty eje) = if punto == valor then Empty else hoja --caso hoja
 eliminar punto (Node izq valor der eje)
-       |punto == valor = --Encontre el valor a eliiminar
+       |punto == valor = --Encontre el valor a eliminar
          if der /= Empty then  --si el subarbol derecho no es vacio
             let
-                   nuevoValor = minimumNdTree der valor eje 
+                   Node _ raizDer _ _ = der --Asi, extraigo la raiz del subarbol derecho
+                   nuevoValor = minimumNdTree der valor eje  --busco el minimo del subarbol derecho
                    nuevoDer = eliminar nuevoValor der --elimino el valor copiado, para que no haya dos valores
             in Node izq nuevoValor nuevoDer eje 
          else --si el subarbol derecho es vacio
            let
-                   nuevoValor = maximumNdTree izq valor eje
+                   Node _ raizIzq _ _ = izq -- Extraigo la raiz del subarbol izquierdo
+                   nuevoValor = maximumNdTree izq valor eje --busco el max del subarbol izquierdo
                    nuevoIzq = eliminar nuevoValor izq
             in Node nuevoIzq nuevoValor der eje
         
-        --SI LLEGUE ACA, tengo que seguir buscando
+        --SI LLEGUE ACA, tengo que seguir buscando el nodo a eliminar
 
        | compareidx eje punto valor == LT = Node (eliminar punto izq) valor der eje --si en el eje actual, el punto a eliminar es menor que donde estoy parado,
                                                                                     -- voy a la izq
@@ -149,16 +163,24 @@ eliminar punto (Node izq valor der eje)
 
 type Rect = (Punto2d, Punto2d)
 
+{-Auxiliar, calcula los min y max de un rectangulo tipo Rect-}
+
+--5A
+
 minMax:: Rect -> (Double,Double,Double,Double)
 minMax (P2d (x1,y1), P2d (x2,y2)) = (min x1 x2, max x1 x2, min y1 y2, max y1 y2)
 
-
+{-Recibe un punto y un rectangulo, y determina si
+el punto esta dentro del area del rectangulo-}
 inRegion:: Punto2d -> Rect -> Bool
-inRegion (P2d (x,y)) r = x >= minX && x <= maxX && y >= minY && y <= maxY
+inRegion (P2d (x,y)) rect = x >= minX && x <= maxX && y >= minY && y <= maxY
                         where
-                            (minX,maxX,minY,maxY) = minMax r
+                            (minX,maxX,minY,maxY) = minMax rect
 
+--5B
 
+{-Toma un arbol de puntos, un rectangulo, y devuelve una lista,
+la cual contiene los puntos que pertenecen al area del rectangulo-}
 ortogonalSearch :: NdTree Punto2d -> Rect -> [Punto2d]
 ortogonalSearch Empty _= []
 ortogonalSearch t r =  ortogonalSearchRecu t r [] 
