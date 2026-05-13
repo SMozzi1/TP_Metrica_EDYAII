@@ -55,9 +55,6 @@ instance Punto Punto3d where
 compareidx :: Punto p => Int -> p -> p -> Ordering
 compareidx i p q = compare (coord i p) (coord i q)
 
--- sortBy (compareidx i) listadepuntos
--- esto nos va a servir para calcular la mediana
--- y elegir el nodo padre
 
 fromList :: Punto p => [p] -> NdTree p
 fromList [] = Empty
