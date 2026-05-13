@@ -18,8 +18,8 @@ distancia p q | dimension p /= dimension q = -1
 
 
 --1B
-newtype Punto2d = P2d (Double, Double)
-newtype Punto3d = P3d (Double, Double, Double)
+newtype Punto2d = P2d (Double, Double) deriving (Show,Eq)
+newtype Punto3d = P3d (Double, Double, Double) deriving (Show,Eq)
     
 distancia2d :: Punto2d -> Punto2d -> Double
 distancia2d (P2d (x1,x2))  (P2d (y1,y2)) = sqrt((y1 - x1)^2 + (y2 - x2)^2)
@@ -150,7 +150,7 @@ eliminar punto (Node izq valor der eje)
 type Rect = (Punto2d, Punto2d)
 
 minMax:: Rect -> (Double,Double,Double,Double)
-minMax (P2d (x1,x2), P2d (y1,y2)) = (min x1 x2, max x1 x2, min y1 y2, max y1 y2)
+minMax (P2d (x1,y1), P2d (x2,y2)) = (min x1 x2, max x1 x2, min y1 y2, max y1 y2)
 
 
 inRegion:: Punto2d -> Rect -> Bool
