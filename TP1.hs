@@ -178,34 +178,48 @@ eliminar punto (Node izq valor der eje)
 {-
 Si estoy en el nodo a eliminar y es una hoja, devuelvo empty, ya que despues los datos que no son usados se borran automaticamente
 Si estoy en el nodo a eliminar y tiene hijo derecho, modifico unicamente su rama derecha,
-
-
-
-
-Lo que pensé: los niveles de mi arbol van a ir indicando el eje sobre el que estoy cortando y sabeos que el eje se determina como
-nivel del arbol en el que estoy % dimension del punto. entonces la busqueda del punto a eliminar lo hago como en un arbol de busqueda
-común. cuando encuentro el nodo si es una hoja lo elimino y listo. sino, al igual que como haciamos con un BST común, tengo que 
-buscar el nodo mas chico del subarbol derecho o el nodo mas grande del subarbol izquierdo para mantener el invariante de un arbol
-binario de busqueda. la diferencia principal es que la busqueda de este nodo maximo o minimo va a terminar no cuando sea una hoja sino
-cuando el eje coincida con el eje del nodo por sobre el cual estoy eliminando. para esto vamos a usar dos funciones auxiliares masGrande y masChico
-
-Tenemos que considerar dos cosas. la primera es siempre que buscamos comparar sobre el eje que estamos buscando y la segunda es que el nodo retornado
-tiene que ser el ultimo nodo de ese eje. por lo tanto de alguna manera tenemos que llevar registro de "el mejor candidato"
-
-Para esto lo que podemos hacer es crear un valor mejor candidato y que su valor sea una llamada recursiva que pare cuando llegue a una hoja
-pero que se reemplace solamente si el eje de la hoja es el mismoo que el eje sobre el que se está buscando
-
-La idea tiene errores y contraejemplos. es por acá pero todavia no cierra
-
-Lo que pensamos con el pola: El eliminar elimina segun el valor de cada nodo en el eje que se desea eliminar. luego se llama al eliminar
-recursivamente en el subarbol de donde se eligio pero ahora llamando al nodo que se inserto en la raiz (porqu eestaria duplicado) y esta recursion
-se va a hacer hasta llegar a la hoja
-
-el costo es h * log(n) con h la altura del arbol
-
 -}
 
-masGrande :: (Eq p, Punto p) => NdTree p -> NdTree p -> NdTree p
 
-masGrande _ Empty = Empty
-masGrande p (Node l raiz r eje) =  undefined
+-- ej 5 --
+
+type Rect = (Punto2d, Punto2d)
+
+inRegion:: Punto2d -> Rect -> Bool
+inRegion _ (0,0) = False
+inRegion (P2d (x,y)) (p1, p2) = x >= minX && x <= maxX && y >= minY && y <= maxY
+                        where
+                            minX = min (coord 0 p1) (coord 0 p2)
+                            maxX = max (coord 0 p1) (coord 0 p2)
+
+                            minY = min (coord 1 p1) (coord 1 p2)
+                            maxY = max (coord 1 p1) (coord 1 p2)
+
+
+ortogonalSearch :: NdTree Punto2d -> Rect -> [Punto2d]
+ortogonalSearch Empty _ = []
+ortogonalSearch t (p1, p2) =  ortogonalSearchRecu t (p1,p2) [] 
+        where
+            ortogonalSearchRecu Empty _ list = list
+            ortogonalSearchRecu (Node l p r eje) (p1, p2)  list = let
+                    minX = min (coord 0 p1) (coord 0 p2)
+                    maxX = max (coord 0 p1) (coord 0 p2)
+
+                    minY = min (coord 1 p1) (coord 1 p2)
+                    maxY = max (coord 1 p1) (coord 1 p2)
+
+                    x = coord 0 p
+                    y = coord 1 p
+
+                    rMin = if eje == 0 then minX else minY 
+                    rMax = if eje == 0 then maxX else maxY
+
+                    valNodo = coord eje p 
+
+                    in case () of
+                    |   valNodo < rMin -> ortogonalSearchRecu r (p1,p2)  list
+                    |   valNodo > rMax -> ortogonalSearchRecu l (p1, p2) list
+                    |   inRegion p (p1, p2) -> (p : ortogonalSearchRecu l (p1,p2) list : ortogonalSearchRecu r (p1,p2) list)
+                    |   otherwise -> (ortogonalSearchRecu l (p1,p2) list : ortogonalSearchRecu r (p1,p2) list)                
+                                                                    
+                                                            
