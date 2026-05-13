@@ -104,76 +104,52 @@ insertar p t = insertarRecu p t 0 --insertarRecu nos ayuda a pasar el level actu
     despues las vamos a poder usar en la funcion eliminar para buscar el 
     nodo "candidato" a reemplazar la raiz -}
 
-{-- Compara n1 y n2 segun la coordenada indicada. Retorna -1 si p1 < p2, 1 en caso contrario --}
+{-- Dados dos puntos p1 y p2, devuelve el minimo segun el eje indicado. --}
+minP :: (Punto p) => Int -> p -> p -> p
+minP eje p1 p2 = if compareidx eje p1 p2 == LT then p1 else p2
 
-{-- Calcula el punto minimo de un NdTree, segun el eje indicado --}
--- Los parametros serian: (nodo, minimoActual, ejeAlineado) -> minimoGlobal
--- minimoActual no va a ser nunca Empty ya que es pasado por una funcion externa
-minimumNdTree :: (Eq p, Punto p) => NdTree p -> p -> Int -> p
+{-- Dados dos puntos p1 y p2, devuelve el maximo segun el eje indicado. --}
+maxP :: (Punto p) => Int -> p -> p -> p
+maxP eje p1 p2 = if compareidx eje p1 p2 == GT then p1 else p2
+
+{-- Recibe un arbol NdTree, un punto p como ultimo valor minimo encontrado, y un eje,
+la funcion retornara el minimo punto encontrado en el arbol visto unicamente en la coordenada eje. --}
+minimumNdTree :: Punto p => NdTree p -> p -> Int -> p
 minimumNdTree Empty minActual _ = minActual
 minimumNdTree (Node izq valor der eje) minActual ejeAlineado
-    | ejeAlineado == eje =
-        let
-            nuevoMin =
-                if compareidx ejeAlineado valor minActual == LT
-                    then valor
-                else minActual
-        in minimumNdTree izq nuevoMin ejeAlineado
+    | ejeAlineado == eje = minimumNdTree izq (minP ejeAlineado valor minActual) ejeAlineado
     | otherwise =
-        let
-            nuevoMin =
-                if compareidx ejeAlineado valor minActual == LT
-                    then valor
-                else minActual
+    	let minFinal = minimumNdTree izq (minP ejeAlineado valor minActual) ejeAlineado
+    	in minimumNdTree der minFinal ejeAlineado
 
-            minIzq = minimumNdTree izq nuevoMin ejeAlineado
-            minDer = minimumNdTree der nuevoMin ejeAlineado
-        in
-            if compareidx ejeAlineado minIzq minDer == LT
-                then minIzq
-            else minDer
 
-{-- Calcula el punto maximo de un NdTree, segun el eje indicado --}
-maximumNdTree :: (Eq p, Punto p) => NdTree p -> p -> Int -> p
+{-- Recibe un arbol NdTree, un punto p como ultimo valor maximo encontrado, y un eje,
+la funcion retornara el maximo punto encontrado en el arbol visto unicamente en la coordenada eje. --}
+maximumNdTree :: Punto p => NdTree p -> p -> Int -> p
 maximumNdTree Empty maxActual _ = maxActual
 maximumNdTree (Node izq valor der eje) maxActual ejeAlineado
-    | ejeAlineado == eje =
-        let
-            nuevoMax =
-                if compareidx ejeAlineado valor maxActual == GT
-                    then valor
-                else maxActual
-        in maximumNdTree der nuevoMax ejeAlineado
+    | ejeAlineado == eje = maximumNdTree der (maxP ejeAlineado valor maxActual) ejeAlineado
     | otherwise =
-        let
-            nuevoMax =
-                if compareidx ejeAlineado valor maxActual == GT
-                    then valor
-                else maxActual
-            maxDer = maximumNdTree der nuevoMax ejeAlineado
-            maxIzq = maximumNdTree izq nuevoMax ejeAlineado
-        in
-            if compareidx ejeAlineado maxDer maxIzq == GT
-                then maxDer
-            else maxIzq
+        let maxFinal = maximumNdTree der (maxP ejeAlineado valor maxActual) ejeAlineado
+        in maximumNdTree izq maxFinal ejeAlineado
 
 
-{- La eliminar esta incompleta
--}
 eliminar :: (Eq p, Punto p) => p -> NdTree p -> NdTree p
-eliminar punto Empty = Empty
-eliminar punto hoja@(Node Empty valor Empty eje) = if punto == punto then Empty else hoja
+eliminar _ Empty = Empty
+eliminar punto hoja@(Node Empty valor Empty eje) = if punto == valor then Empty else hoja
 eliminar punto (Node izq valor der eje)
-    | (punto == valor) && (der /= Empty) = Node izq minDer nuevoDer eje
-        where 
-            minDer = minimumNdTree der eje
-            nuevoDer = eliminar minDer der
-    | (punto == valor) && (der == Empty) = Node nuevoIzq maxIzq der eje
-        where
-            maxIzq = maximumNdTree izq eje
-            nuevoIzq = eliminar maxIzq izq
-    | coord eje punto < coord eje raiz = Node (eliminar nodo izq) raiz der eje
-    | otherwise = Node izq raiz (eliminar nodo der) eje
+	   |(punto == valor) && (der /= Empty) = Node izq nuevoValor nuevoDer eje
+	   	where
+	   		nuevoValor = minimumNdTree der valor eje
+	   		nuevoDer = eliminar nuevoValor der
+
+	   |(punto == valor) && (der == Empty) = Node nuevoIzq nuevoValor der eje
+	   	where
+	   		nuevoValor = maximumNdTree izq valor eje
+	   		nuevoIzq = eliminar nuevoValor izq
+
+	   | compareidx eje punto valor == LT = Node (eliminar punto izq) valor der eje
+	   | otherwise = Node izq valor (eliminar punto der) eje
 
 {-
 Si estoy en el nodo a eliminar y es una hoja, devuelvo empty, ya que despues los datos que no son usados se borran automaticamente
