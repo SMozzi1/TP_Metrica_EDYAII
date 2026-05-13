@@ -219,7 +219,13 @@ ortogonalSearch t (p1, p2) =  ortogonalSearchRecu t (p1,p2) []
                     in case () of
                     |   valNodo < rMin -> ortogonalSearchRecu r (p1,p2)  list
                     |   valNodo > rMax -> ortogonalSearchRecu l (p1, p2) list
-                    |   inRegion p (p1, p2) -> (p : ortogonalSearchRecu l (p1,p2) list : ortogonalSearchRecu r (p1,p2) list)
-                    |   otherwise -> (ortogonalSearchRecu l (p1,p2) list : ortogonalSearchRecu r (p1,p2) list)                
+                    |   otherwise -> let
+                                    lisDer = ortogonalSearchRecu r (p1,p2) list
+
+                                    lisTotal = ortogonalSearchRecu l (p1, p2) lisDer
+
+                                    in if inRegion p (p1, p2) then (p:lisTotal) else lisTotal
+
+             
                                                                     
                                                             
