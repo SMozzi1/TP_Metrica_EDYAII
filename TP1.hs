@@ -10,8 +10,8 @@ class Punto p where
     dist :: p -> p -> Double -- calcula la distancia entre dos puntos
 
 -- 1A, GENERICA, USANDO coord Y dimension
-dist2 :: Punto p => p -> p -> Double
-dist2 p q | dimension p /= dimension q = 0
+distancia :: Punto p => p -> p -> Double
+distancia p q | dimension p /= dimension q = -1
          | otherwise = sqrt (sum [(coord i q- coord i p)^2 | i <- [0.. dimension p - 1]])
 
 
@@ -27,26 +27,22 @@ distancia3d (P3d(x1,x2,x3)) (P3d (y1,y2,y3)) = sqrt((y1 - x1)^2 + (y2 - x2)^2 + 
 
 -- Instancias (lo hizo Mozzi)
 
-instance Punto p_2d where
-
+instance Punto Punto2d where
     dimension _ = 2
-
     coord k (P2d (x, y))
-    | k == 0 = x
-    | k == 1 = y
-    | otherwise = error "Dimension fuera de rango"
-    
-    dist p q = distancia2d p q 
+        | k == 0 = x
+        | k == 1 = y
+        | otherwise = error "Dimension fuera de rango"
+    dist p q = distancia2d p q
 
-instance Punto p_3d where
+
+instance Punto Punto3d where
     dimension _ = 3
-
     coord k (P3d (x, y, z))
-    | k == 0 = x
-    | k == 1 = y
-    | k == 2 = z
-    | otherwise = error "Dimension fuera de rango"
-
+        | k == 0 = x
+        | k == 1 = y
+        | k == 2 = z
+        | otherwise = error "Dimension fuera de rango"
     dist p q = distancia3d p q
 
 {-
@@ -97,27 +93,94 @@ Mozzi: Creo que no se puede zafar del costo. no veo la forma de no ordenar cada 
 ---- EJERCICIO 3 ----
 insertar :: Punto p => p -> NdTree p -> NdTree p
 insertar p t = insertarRecu p t 0 --insertarRecu nos ayuda a pasar el level actual
-  where
-    insertarRecu punto Empty level = 
-        Node Empty punto Empty (level `mod` dimension punto)
-
-    insertarRecu punto (Node izq raiz der eje) level
-      | coord eje punto < coord eje raiz = 
-          insertarRecu punto izq (level + 1)
-      | otherwise = 
-          insertarRecu punto der (level + 1)
-
-
-{- No funciona porque en cada paso crea el nodo. lo que hay que hacer para mantener el balance es en cada paso
-comparar las coordenadas del nivel en el que estas parado para determinar si vas a la izquierda o a la derecha.
-si estas en el nivel 0 comparas los valores del eje x si estas en el nivel 2 los del eje y y asi. insertas en las hojas-}
+  where insertarRecu punto Empty level = Node Empty punto Empty (level `mod` dimension punto)
+        insertarRecu punto (Node izq raiz der eje) level
+            | coord eje punto < coord eje raiz = Node (insertarRecu punto izq (level + 1)) raiz der eje
+            | otherwise = Node izq raiz (insertarRecu punto der (level + 1)) eje
 
 
 -- Ejercicio 4 (Mozzi) --
+{- Pola: Hice funciones para calcular el maximo y el minimo de un arbol,
+    despues las vamos a poder usar en la funcion eliminar para buscar el 
+    nodo "candidato" a reemplazar la raiz -}
 
+{-- Compara n1 y n2 segun la coordenada indicada. Retorna -1 si p1 < p2, 1 en caso contrario --}
+
+{-- Calcula el punto minimo de un NdTree, segun el eje indicado --}
+-- Los parametros serian: (nodo, minimoActual, ejeAlineado) -> minimoGlobal
+-- minimoActual no va a ser nunca Empty ya que es pasado por una funcion externa
+minimumNdTree :: (Eq p, Punto p) => NdTree p -> p -> Int -> p
+minimumNdTree Empty minActual _ = minActual
+minimumNdTree (Node izq valor der eje) minActual ejeAlineado
+    | ejeAlineado == eje =
+        let
+            nuevoMin =
+                if compareidx ejeAlineado valor minActual == LT
+                    then valor
+                else minActual
+        in minimumNdTree izq nuevoMin ejeAlineado
+    | otherwise =
+        let
+            nuevoMin =
+                if compareidx ejeAlineado valor minActual == LT
+                    then valor
+                else minActual
+
+            minIzq = minimumNdTree izq nuevoMin ejeAlineado
+            minDer = minimumNdTree der nuevoMin ejeAlineado
+        in
+            if compareidx ejeAlineado minIzq minDer == LT
+                then minIzq
+            else minDer
+
+{-- Calcula el punto maximo de un NdTree, segun el eje indicado --}
+maximumNdTree :: (Eq p, Punto p) => NdTree p -> p -> Int -> p
+maximumNdTree Empty maxActual _ = maxActual
+maximumNdTree (Node izq valor der eje) maxActual ejeAlineado
+    | ejeAlineado == eje =
+        let
+            nuevoMax =
+                if compareidx ejeAlineado valor maxActual == GT
+                    then valor
+                else maxActual
+        in maximumNdTree der nuevoMax ejeAlineado
+    | otherwise =
+        let
+            nuevoMax =
+                if compareidx ejeAlineado valor maxActual == GT
+                    then valor
+                else maxActual
+            maxDer = maximumNdTree der nuevoMax ejeAlineado
+            maxIzq = maximumNdTree izq nuevoMax ejeAlineado
+        in
+            if compareidx ejeAlineado maxDer maxIzq == GT
+                then maxDer
+            else maxIzq
+
+
+{- La eliminar esta incompleta
+-}
 eliminar :: (Eq p, Punto p) => p -> NdTree p -> NdTree p
+eliminar punto Empty = Empty
+eliminar punto hoja@(Node Empty valor Empty eje) = if punto == punto then Empty else hoja
+eliminar punto (Node izq valor der eje)
+    | (punto == valor) && (der /= Empty) = Node izq minDer nuevoDer eje
+        where 
+            minDer = minimumNdTree der eje
+            nuevoDer = eliminar minDer der
+    | (punto == valor) && (der == Empty) = Node nuevoIzq maxIzq der eje
+        where
+            maxIzq = maximumNdTree izq eje
+            nuevoIzq = eliminar maxIzq izq
+    | coord eje punto < coord eje raiz = Node (eliminar nodo izq) raiz der eje
+    | otherwise = Node izq raiz (eliminar nodo der) eje
 
 {-
+Si estoy en el nodo a eliminar y es una hoja, devuelvo empty, ya que despues los datos que no son usados se borran automaticamente
+Si estoy en el nodo a eliminar y tiene hijo derecho, modifico unicamente su rama derecha,
+
+
+
 
 Lo que pensé: los niveles de mi arbol van a ir indicando el eje sobre el que estoy cortando y sabeos que el eje se determina como
 nivel del arbol en el que estoy % dimension del punto. entonces la busqueda del punto a eliminar lo hago como en un arbol de busqueda
@@ -145,7 +208,4 @@ el costo es h * log(n) con h la altura del arbol
 masGrande :: (Eq p, Punto p) => NdTree p -> NdTree p -> NdTree p
 
 masGrande _ Empty = Empty
-masGrande p (Node l raiz r eje) = 
-
-
-
+masGrande p (Node l raiz r eje) =  undefined
